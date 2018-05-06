@@ -1,1 +1,1 @@
-import eda
+from ikon.eda import *
