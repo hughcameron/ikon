@@ -1,11 +1,15 @@
 import pandas as pd
+from numpy import nan
 
 
-def data_report(df):
+def data_report(df, na_values=[]):
+    void = df.apply(lambda x: len(x[x.isin(na_values)]), axis=0)
+    df = df.replace(na_values, nan)
     report = pd.DataFrame()
     report['type'] = df.dtypes
     report['count'] = df.count()
     report['length'] = len(df)
+    report['void'] = void
     report['coverage'] = round((report['count'] / len(df)), 2)
     report['cardinality'] = df.nunique()
     report['mode coverage'] = df.apply(
