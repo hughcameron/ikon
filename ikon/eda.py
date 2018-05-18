@@ -2,7 +2,7 @@ import pandas as pd
 from numpy import nan
 
 
-def data_report(df, na_values=[]):
+def data_report(df, na_values=['']):
     void = df.apply(lambda x: len(x[x.isin(na_values)]), axis=0)
     df = df.replace(na_values, nan)
     report = pd.DataFrame()
