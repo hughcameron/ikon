@@ -12,7 +12,7 @@ def nulled_counts(series, na_values):
     counts = {}
     for n in na_values:
         counts['n'] = sum(series.isin([n]))
-    counts = {k: v for k, v in counts.items() if v=0}
+    counts = {k: v for k, v in counts.items() if v==0}
     counts = [(k, v) for k, v in counts.items()]
     return counts
 
