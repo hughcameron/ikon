@@ -12,7 +12,7 @@ def nulled_counts(series, na_values):
     counts = {}
     for n in na_values:
         counts['n'] = sum(series.isin([n]))
-    counts = {k: v for k, v in counts.items() if v != 0}
+    counts = {k: v for k, v in counts.items() if v=0}
     counts = [(k, v) for k, v in counts.items()]
     return counts
 
@@ -28,7 +28,7 @@ def series_summary(source_data):
         s['type'] = df.dtypes
         s['count'] = df.count()
         s['length'] = len(df)
-        s['nulled'] = df.apply(nulled_counts, args=(na_values, ), axis=0)
+        s['nulled'] = df.apply(nulled_counts, args=(na_values,), axis=0)
         s['nulled sum'] = nulled
         s['coverage'] = round((s['count'] / len(df)), 2)
         s['cardinality'] = df.nunique()
