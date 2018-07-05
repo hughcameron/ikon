@@ -1,6 +1,5 @@
 import pandas as pd
-from numpy import nan
-from os.path import basename, splitext
+
 
 nullables = [
     0, '0', ' ', '-', '.', '01/01/1900 00:00:00', '30/12/1899 00:00:00',
@@ -12,7 +11,7 @@ def nulled_counts(series, na_values):
     counts = {}
     for n in na_values:
         counts['n'] = sum(series.isin([n]))
-    counts = {k: v for k, v in counts.items() if v==0}
+    counts = {k: v for k, v in counts.items() if v!=0}
     counts = [(k, v) for k, v in counts.items()]
     return counts
 
