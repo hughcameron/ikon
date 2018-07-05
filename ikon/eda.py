@@ -1,5 +1,5 @@
 import pandas as pd
-
+from numpy import nan
 
 nullables = [
     0, '0', ' ', '-', '.', '01/01/1900 00:00:00', '30/12/1899 00:00:00',
