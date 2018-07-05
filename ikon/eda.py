@@ -2,8 +2,10 @@ import pandas as pd
 from numpy import nan
 from os.path import basename, splitext
 
-nullables = [0, '0', ' ', '.', '01/01/1900 00:00:00',
-             '30/12/1899 00:00:00', '00:00:00', '??:??:??']
+nullables = [
+    0, '0', ' ', '-', '.', '01/01/1900 00:00:00', '30/12/1899 00:00:00',
+    '00:00:00', '??:??:??'
+]
 
 
 def nulled_counts(series, na_values):
@@ -26,7 +28,7 @@ def series_summary(source_data):
         s['type'] = df.dtypes
         s['count'] = df.count()
         s['length'] = len(df)
-        s['nulled'] = df.apply(nulled_counts, args=(na_values,), axis=0)
+        s['nulled'] = df.apply(nulled_counts, args=(na_values, ), axis=0)
         s['nulled sum'] = nulled
         s['coverage'] = round((s['count'] / len(df)), 2)
         s['cardinality'] = df.nunique()
