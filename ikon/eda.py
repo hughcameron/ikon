@@ -55,13 +55,6 @@ def infer_encoding(file):
     else:
         return detect_encoding(file)
 
-def find_sources(path, recursive=False, **kwargs):
-    source_list = []
-    group = glob(path, recursive=recursive)
-    for g in group:
-        source_list.append(DataSource(g, **kwargs))
-    return source_list
-
 
 def non_zero_var(counts):
     if sum(counts) == 0:
@@ -129,6 +122,14 @@ class DataSource:
         arguments = ''.join(arguments)
         statement = define + arguments + ')'
         return statement
+
+
+def find_sources(path, recursive=False, **kwargs):
+    source_list = []
+    group = glob(path, recursive=recursive)
+    for g in group:
+        source_list.append(DataSource(g, **kwargs))
+    return source_list
 
 
 def gen_dataframe(DataSource):
