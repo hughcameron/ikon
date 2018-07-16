@@ -94,16 +94,20 @@ class DataSource:
 
         #Infer delimiteter by using csv Sniffer or by evaluating
         # minumum varience of delimiter occurence in first 10 lines
-        with open(self.source, 'r', encoding=self.encoding) as f:
-            try:
-                lines = f.readline() + '\n' + f.readline()
-                dialect = csv.Sniffer().sniff(lines, delimiters=',;|\t')
-                self.delimiter = dialect.delimiter
-            except:
-                lines = [f.readline() for i in range(10)]
-                counts = [[l.count(d) for l in lines] for d in delimiters]
-                varience = [non_zero_var(c) for c in counts]
-                self.delimiter = delimiters[varience.index(min(varience))]
+        if kwargs['sep'] == None:
+            with open(self.source, 'r', encoding=self.encoding) as f:
+                try:
+                    lines = f.readline() + '\n' + f.readline()
+                    dialect = csv.Sniffer().sniff(lines, delimiters=',;|\t')
+                    self.delimiter = dialect.delimiter
+                except:
+                    lines = [f.readline() for i in range(10)]
+                    counts = [[l.count(d) for l in lines] for d in delimiters]
+                    varience = [non_zero_var(c) for c in counts]
+                    self.delimiter = delimiters[varience.index(min(varience))]
+        else:
+            self.delimiter = kwargs.pop('sep')
+
 
     def statement(self):
         """Return a string that can be run to generate DataFrames."""
