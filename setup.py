@@ -20,6 +20,6 @@ setup(
         "python"
     ],
     install_requires=[
-        'pytest'
+        'pytest', 'pandas', 'numpy', 'os', 'chardet', 'glob', 'csv'
     ]
 )
