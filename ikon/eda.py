@@ -90,14 +90,16 @@ class DataSource:
         self.ext = ext_match[splitext(basename(self.source))[1]]
 
         #Infer enconding
-        if kwargs['encoding'] == None:
-            self.encoding = infer_encoding(self.source)
-        else:
+        try:
             self.encoding = kwargs.pop('encoding')
+        except KeyError:
+            self.encoding = infer_encoding(self.source)
 
         #Infer delimiteter by using csv Sniffer or by evaluating
         # minumum varience of delimiter occurence in first 10 lines
-        if kwargs['sep'] == None:
+        try:
+            self.delimiter = kwargs.pop('sep')
+        except KeyError:
             with open(self.source, 'r', encoding=self.encoding) as f:
                 try:
                     lines = f.readline() + '\n' + f.readline()
@@ -108,8 +110,6 @@ class DataSource:
                     counts = [[l.count(d) for l in lines] for d in delimiters]
                     varience = [non_zero_var(c) for c in counts]
                     self.delimiter = delimiters[varience.index(min(varience))]
-        else:
-            self.delimiter = kwargs.pop('sep')
 
 
     def statement(self):
