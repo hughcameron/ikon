@@ -55,6 +55,13 @@ def infer_encoding(file):
     else:
         return detect_encoding(file)
 
+def find_sources(path, recursive=False, **kwargs):
+    source_list = []
+    group = glob(path, recursive=recursive)
+    for g in group:
+        source_list.append(DataSource(g, **kwargs))
+    return source_list
+
 
 def non_zero_var(counts):
     if sum(counts) == 0:
@@ -90,7 +97,10 @@ class DataSource:
         self.ext = ext_match[splitext(basename(self.source))[1]]
 
         #Infer enconding
-        self.encoding = infer_encoding(self.source)
+        if kwargs['encoding'] == None:
+            self.encoding = infer_encoding(self.source)
+        else:
+            self.encoding = kwargs.pop('encoding')
 
         #Infer delimiteter by using csv Sniffer or by evaluating
         # minumum varience of delimiter occurence in first 10 lines
@@ -147,7 +157,7 @@ def read_source(path, recursive=False, **kwargs):
         return dataframes
 
 
-def series_summary(DataSource, **kwargs):
+def frame_summary(DataSource, **kwargs):
     """Generate Series Summary from DataSource"""
     df = gen_dataframe(DataSource)
     na_values = kwargs.get('na_values', [])
@@ -175,20 +185,30 @@ def series_summary(DataSource, **kwargs):
     return s
 
 
-def summary(path, recursive=False, **kwargs):
-    group = glob(path, recursive=recursive)
+def data_summary(group, recursive=False, **kwargs):
+    """Generate a Frame Summary for a group of paths or DataSources"""
+    datasource_list = []
     if type(group) == list:
-        summary_list = []
         for g in group:
-            ds = DataSource(g, **kwargs)
-            summary_list.append(series_summary(ds))
-        return pd.concat(summary_list, axis=0)
+            if type(g) == str:
+                ds = find_sources(g, recursive=recursive, **kwargs)
+                datasource_list += ds
+            elif type(g) == DataSource:
+                datasource_list.append(g)
+            else:
+                raise ValueError('Expecting type list, path or DataSource.')
+    elif type(group) == str:
+        ds = find_sources(group, recursive=recursive, **kwargs)
+        datasource_list += ds
+    elif type(group) == DataSource:
+        datasource_list.append(group)
     else:
-        ds = DataSource(group)
-        return series_summary(ds)
+        raise ValueError('Expecting type list, path or DataSource.')
+    summary_list = [frame_summary(ds, **kwargs) for ds in datasource_list]
+    return pd.concat(summary_list, axis=0)
 
 
-def statement(path, recursive=False, **kwargs):
+def statements(path, recursive=False, **kwargs):
     fileset = glob(path, recursive=recursive)
     statement_list = []
     frame_list = []
