@@ -107,8 +107,8 @@ class DataSource:
 
     def statement(self):
         """Return a string that can be run to generate DataFrames."""
-        define = "{0} = pd.read_{1}('{2}', encoding='{3}'".format(
-            self.name, self.ext, self.source, self.encoding)
+        define = "{0} = pd.read_{1}('{2}', encoding='{3}, sep='{4}'".format(
+            self.name, self.ext, self.source, self.encoding, self.delimiter)
         arguments = [
             ', ' + k + '=' + string_arg(v) for k, v in self.kwargs.items()
         ]
@@ -184,7 +184,7 @@ def summary(path, recursive=False, **kwargs):
         return series_summary(ds)
 
 
-def group_statements(path, recursive=False, **kwargs):
+def statement(path, recursive=False, **kwargs):
     fileset = glob(path, recursive=recursive)
     statement_list = []
     frame_list = []
