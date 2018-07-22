@@ -114,7 +114,7 @@ class DataSource:
 
     def statement(self):
         """Return a string that can be run to generate DataFrames."""
-        define = "{0} = pd.read_{1}('{2}', encoding='{3}, sep='{4}'".format(
+        define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
             self.name, self.ext, self.source, self.encoding, self.delimiter)
         arguments = [
             ', ' + k + '=' + string_arg(v) for k, v in self.kwargs.items()
