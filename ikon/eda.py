@@ -78,10 +78,22 @@ def string_arg(v):
         return "'" + v + "'"
 
 
+def get_source_attr(DataFrame):
+    """Accepts a DataFrame and returns the source and name attributes used in a DataSource."""
+    try:
+        name = DataFrame.name
+    except AttributeError:
+        name = 'df'
+    try:
+        source = DataFrame.source
+    except AttributeError:
+        source = 'source'
+    return source, name
+
 class DataSource:
     """
     The DataSource object offers a preface to a DataFrame that is derived from a file. 
-    The DataSource undergoes a few tests to establish  attributes useful for dealing with large groups of files.
+    The DataSource undergoes a few tests to establish DataFrame attributes.
     """
 
     def __init__(self, source, name=None, **kwargs):
@@ -94,30 +106,39 @@ class DataSource:
         else:
             self.name = name
 
-        # Derive file extension from filename
-        self.ext = ext_match[splitext(basename(self.source))[1]]
+        # Derive file extension from filename if available
+        try:
+            self.ext = ext_match[splitext(basename(self.source))[1]]
+        except KeyError:
+            self.ext = None
 
         # Infer enconding
         try:
             self.encoding = kwargs.pop("encoding")
         except KeyError:
-            self.encoding = infer_encoding(self.source)
+            try:
+                self.encoding = infer_encoding(self.source)
+            except FileNotFoundError:
+                self.encoding = None
 
         # Infer delimiteter by using csv Sniffer or by evaluating
         # minumum varience of delimiter occurence in first 10 lines
         try:
             self.delimiter = kwargs.pop("sep")
         except KeyError:
-            with open(self.source, "r", encoding=self.encoding) as f:
-                try:
-                    lines = f.readline() + "\n" + f.readline()
-                    dialect = csv.Sniffer().sniff(lines, delimiters=",;|\t")
-                    self.delimiter = dialect.delimiter
-                except:
-                    lines = [f.readline() for i in range(10)]
-                    counts = [[l.count(d) for l in lines] for d in delimiters]
-                    varience = [non_zero_var(c) for c in counts]
-                    self.delimiter = delimiters[varience.index(min(varience))]
+            try:
+                with open(self.source, "r", encoding=self.encoding) as f:
+                    try:
+                        lines = f.readline() + "\n" + f.readline()
+                        dialect = csv.Sniffer().sniff(lines, delimiters=",;|\t")
+                        self.delimiter = dialect.delimiter
+                    except:
+                        lines = [f.readline() for i in range(10)]
+                        counts = [[l.count(d) for l in lines] for d in delimiters]
+                        varience = [non_zero_var(c) for c in counts]
+                        self.delimiter = delimiters[varience.index(min(varience))]
+            except FileNotFoundError:
+                self.delimiter = None
 
     def statement(self):
         """Return a string that can be run to generate DataFrames."""
@@ -168,12 +189,11 @@ def read_source(path, recursive=False, **kwargs):
 def frame_summary(data, **kwargs):
     """Generate Series Summary from a DataSource or DataFrame"""
     if type(data) == DataSource:
-        df = gen_dataframe(DataSource)
-        df.name, df.source = data.name, data.source
+        ds = data
+        ds.df = gen_dataframe(DataSource)
     elif type(data) == pd.DataFrame:
-        df = data
-        df.set('name', data.get("name", "df"))
-        df.set('source', data.get("source", "file"))
+        ds = DataSource(*get_source_attr(data))
+        ds.df = data
         # TODO provide warning if df.name and df.source are set to defaults across multiple frames
     else:
         raise ValueError(
@@ -181,24 +201,24 @@ def frame_summary(data, **kwargs):
         )
     na_values = kwargs.get("na_values", [])
     na_values = nullables + na_values
-    nulled = df.apply(lambda x: round(sum(x.isin(na_values)) / len(df), 2), axis=0)
-    df = df.replace(na_values, nan)
+    nulled = ds.df.apply(lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
+    ds.df = ds.df.replace(na_values, nan)
     s = pd.DataFrame()
-    s["type"] = df.dtypes
-    s["count"] = df.count()
-    s["length"] = len(df)
-    s["coverage"] = round((s["count"] / len(df)), 2)
-    s["cardinality"] = df.nunique()
+    s["type"] = ds.df.dtypes
+    s["count"] = ds.df.count()
+    s["length"] = len(ds.df)
+    s["coverage"] = round((s["count"] / len(ds.df)), 2)
+    s["cardinality"] = ds.df.nunique()
     s["nulled"] = nulled
-    s["mode coverage"] = df.apply(
+    s["mode coverage"] = ds.df.apply(
         lambda x: round(x.value_counts().max() / len(x), 2), axis=0
     )
-    s["mode"] = df.mode().head(1).T
-    s["sample"] = df.sample().T
+    s["mode"] = ds.df.mode().head(1).T
+    s["sample"] = ds.df.sample().T
     s.index.name = "column"
     s.reset_index(inplace=True)
-    s["reference"] = df.name + "['" + s["column"] + "']"
-    s["file"] = df.source
+    s["reference"] = ds.name + "['" + s["column"] + "']"
+    s["file"] = ds.source
     s.index += 1
     s.index.name = "sequence"
     return s
@@ -241,10 +261,8 @@ def statements(path, recursive=False, source_attr=False, **kwargs):
         s = DataSource(f, **kwargs)
         statement_list.append(s.statement())
         if source_attr:
-            s_attrs = "{}.name, {}.source = '{}', '{}'".format(
-                s.name, s.name, s.name, s.source
-            )
-            statement_list.append(s_attrs)
+            statement_list.append("{}.name = '{}'".format(s.name, s.name))
+            statement_list.append("{}.source = '{}'".format(s.name, s.source))
         else:
             pass
         frame_list.append(s.name)
