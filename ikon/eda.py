@@ -90,7 +90,6 @@ def get_source_attr(DataFrame):
         source = 'source'
     return source, name
 
-
 class DataSource:
     """
     The DataSource object offers a preface to a DataFrame that is derived from a file. 
@@ -131,26 +130,22 @@ class DataSource:
                 with open(self.source, "r", encoding=self.encoding) as f:
                     try:
                         lines = f.readline() + "\n" + f.readline()
-                        dialect = csv.Sniffer().sniff(
-                            lines, delimiters=",;|\t")
+                        dialect = csv.Sniffer().sniff(lines, delimiters=",;|\t")
                         self.delimiter = dialect.delimiter
                     except:
                         lines = [f.readline() for i in range(10)]
-                        counts = [[l.count(d) for l in lines]
-                                  for d in delimiters]
+                        counts = [[l.count(d) for l in lines] for d in delimiters]
                         varience = [non_zero_var(c) for c in counts]
-                        self.delimiter = delimiters[varience.index(
-                            min(varience))]
+                        self.delimiter = delimiters[varience.index(min(varience))]
             except FileNotFoundError:
                 self.delimiter = None
 
     def statement(self):
         """Return a string that can be run to generate DataFrames."""
         define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
-            self.name, self.ext, self.source, self.encoding, self.delimiter)
-        arguments = [
-            ", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()
-        ]
+            self.name, self.ext, self.source, self.encoding, self.delimiter
+        )
+        arguments = [", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()]
         arguments = "".join(arguments)
         statement = define + arguments + ")"
         return statement
@@ -169,7 +164,8 @@ def gen_dataframe(DataSource):
     ds = DataSource
     if ds.ext == "csv":
         ds.df = pd.read_csv(
-            ds.source, sep=ds.delimiter, encoding=ds.encoding, **ds.kwargs)
+            ds.source, sep=ds.delimiter, encoding=ds.encoding, **ds.kwargs
+        )
         return ds.df
     else:
         ds.df = pd.read_excel(ds.source)
@@ -201,12 +197,11 @@ def frame_summary(data, **kwargs):
         # TODO provide warning if df.name and df.source are set to defaults across multiple frames
     else:
         raise ValueError(
-            "Expecting type DataSource or DataFrame, received {}.".format(
-                type(data)))
+            "Expecting type DataSource or DataFrame, received {}.".format(type(data))
+        )
     na_values = kwargs.get("na_values", [])
     na_values = nullables + na_values
-    nulled = ds.df.apply(
-        lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
+    nulled = ds.df.apply(lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
     ds.df = ds.df.replace(na_values, nan)
     s = pd.DataFrame()
     s["type"] = ds.df.dtypes
@@ -216,7 +211,8 @@ def frame_summary(data, **kwargs):
     s["cardinality"] = ds.df.nunique()
     s["nulled"] = nulled
     s["mode coverage"] = ds.df.apply(
-        lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
+        lambda x: round(x.value_counts().max() / len(x), 2), axis=0
+    )
     s["mode"] = ds.df.mode().head(1).T
     s["sample"] = ds.df.sample().T
     s.index.name = "column"
@@ -242,8 +238,10 @@ def summaries(group, recursive=False, **kwargs):
                 data_list.append(g)
             else:
                 raise ValueError(
-                    "Expecting type list, path or DataSource, received {}.".
-                    format(type(g)))
+                    "Expecting type list, path or DataSource, received {}.".format(
+                        type(g)
+                    )
+                )
     elif type(group) == str:
         d = find_sources(group, recursive=recursive, **kwargs)
         data_list += d
