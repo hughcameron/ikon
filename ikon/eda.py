@@ -190,7 +190,7 @@ def frame_summary(data, **kwargs):
     """Generate Series Summary from a DataSource or DataFrame"""
     if type(data) == DataSource:
         ds = data
-        ds.df = gen_dataframe(DataSource)
+        ds.df = gen_dataframe(ds)
     elif type(data) == pd.DataFrame:
         ds = DataSource(*get_source_attr(data))
         ds.df = data
