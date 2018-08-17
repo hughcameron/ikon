@@ -271,3 +271,10 @@ def statements(path, recursive=False, source_attr=False, **kwargs):
     statements = "\n".join(statement_list)
     statements += "\n\ndf_list = " + str(frame_list).replace("'", "")
     return statements
+
+def sources(path, recursive=False, **kwargs):
+    fileset = glob(path, recursive=recursive)
+    sources = []
+    for f in fileset:
+        s = DataSource(f, **kwargs)
+    return sources
