@@ -50,12 +50,10 @@ def detect_encoding(file):
 
 def infer_encoding(file):
     """Test for encoding with preferred_encodings or UniversalDetector."""
-    with open(file, "rb") as f:
-        data = f.read(1024)
     i = 0
     while i < len(preferred_encodings):
         try:
-            data.decode(preferred_encodings[i])
+            pd.read_csv(file, encoding=preferred_encodings[i], nrows=50)
         except UnicodeDecodeError:
             i += 1
         else:
