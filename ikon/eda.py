@@ -277,4 +277,5 @@ def sources(path, recursive=False, **kwargs):
     sources = []
     for f in fileset:
         s = DataSource(f, **kwargs)
+        sources.append(s)
     return sources
