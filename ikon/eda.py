@@ -144,14 +144,6 @@ class DataSource:
         return statement
 
 
-def find_sources(path, recursive=False, **kwargs):
-    source_list = []
-    group = glob(path, recursive=recursive)
-    for g in group:
-        source_list.append(DataSource(g, **kwargs))
-    return source_list
-
-
 def read_source(path, recursive=False, **kwargs):
     """Return one or many files as DataFrames"""
     fetch = glob(path, recursive=recursive)
