@@ -120,28 +120,23 @@ class DataSource:
             except FileNotFoundError:
                 self.delimiter = None
 
-    @classmethod
-    def df(cls):
+    def df(self):
         """Generate a DataFrame from a Datasource"""
-
-        ds = DataSource()
-        if ds.ext == "csv":
-            ds.df = pd.read_csv(
-                ds.source, sep=ds.delimiter, encoding=ds.encoding, **ds.kwargs)
-            return ds.df
+        if self.ext == "csv":
+            df = pd.read_csv(
+                self.source, sep=self.delimiter, encoding=self.encoding, **self.kwargs)
+            return df
         else:
-            ds.df = pd.read_excel(ds.source)
-            return ds.df
+            # TODO provide multi tab method for dataframes
+            df = pd.read_excel(self.source)
+            return df
 
-    @classmethod
-    def statement(cls):
+    def statement(self):
         """Return a string that can be run to generate DataFrames."""
-
-        ds = DataSource()
         define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
-            ds.name, ds.ext, ds.source, ds.encoding, ds.delimiter)
+            self.name, self.ext, self.source, self.encoding, self.delimiter)
         arguments = [
-            ", " + k + "=" + string_arg(v) for k, v in ds.kwargs.items()
+            ", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()
         ]
         arguments = "".join(arguments)
         statement = define + arguments + ")"
