@@ -123,62 +123,65 @@ class DataSource:
     @classmethod
     def df(cls):
         """Generate a DataFrame from a Datasource"""
-        if cls.ext == "csv":
-            cls.df = pd.read_csv(
-                cls.source, sep=cls.delimiter, encoding=cls.encoding, **cls.kwargs)
-            return cls.df
+
+        ds = DataSource()
+        if ds.ext == "csv":
+            ds.df = pd.read_csv(
+                ds.source, sep=ds.delimiter, encoding=ds.encoding, **ds.kwargs)
+            return ds.df
         else:
-            cls.df = pd.read_excel(cls.source)
-            return cls.df
+            ds.df = pd.read_excel(ds.source)
+            return ds.df
 
     @classmethod
     def statement(cls):
         """Return a string that can be run to generate DataFrames."""
+
+        ds = DataSource()
         define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
-            cls.name, cls.ext, cls.source, cls.encoding, cls.delimiter)
+            ds.name, ds.ext, ds.source, ds.encoding, ds.delimiter)
         arguments = [
-            ", " + k + "=" + string_arg(v) for k, v in cls.kwargs.items()
+            ", " + k + "=" + string_arg(v) for k, v in ds.kwargs.items()
         ]
         arguments = "".join(arguments)
         statement = define + arguments + ")"
         return statement
 
-    @classmethod
-    def summary(data, **kwargs):
-        """Generate a summary from a DataSource or DataFrame"""
-        if type(data) == DataSource:
-            ds = data
-        elif type(data) == pd.DataFrame:
-            ds = DataSource(*get_source_attr(data))
-            ds.df = data
-            # TODO provide warning if df.name and df.source are set to defaults across multiple frames
-        else:
-            raise ValueError(
-                "Expecting type DataSource or DataFrame, received {}.".format(
-                    type(data)))
-        na_values = kwargs.get("na_values", [])
-        na_values = nullables + na_values
-        nulled = ds.df.apply(
-            lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
-        ds.df = ds.df.replace(na_values, nan)
-        s = pd.DataFrame()
-        s["type"] = ds.df.dtypes
-        s["count"] = ds.df.count()
-        s["length"] = len(ds.df)
-        s["coverage"] = round((s["count"] / len(ds.df)), 2)
-        s["cardinality"] = ds.df.nunique()
-        s["nulled"] = nulled
-        s["mode coverage"] = ds.df.apply(
-            lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
-        s["mode"] = ds.df.mode().head(1).T
-        s["sample"] = ds.df.sample().T
-        s.index.name = "column"
-        s.reset_index(inplace=True)
-        s["reference"] = ds.name + "['" + s["column"] + "']"
-        s["file"] = ds.source
-        s.index += 1
-        s.index.name = "sequence"
-        return s
+def summary(data, **kwargs):
+    """Generate a summary from a DataSource or DataFrame"""
+    if type(data) == DataSource:
+        ds = data
+    elif type(data) == pd.DataFrame:
+        ds = DataSource(*get_source_attr(data))
+        ds.df = data
+        # TODO provide warning if df.name and df.source are set to defaults across multiple frames
+    else:
+        raise ValueError(
+            "Expecting type DataSource or DataFrame, received {}.".format(
+                type(data)))
+    na_values = kwargs.get("na_values", [])
+    na_values = nullables + na_values
+    nulled = ds.df.apply(
+        lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
+    ds.df = ds.df.replace(na_values, nan)
+    s = pd.DataFrame()
+    s["type"] = ds.df.dtypes
+    s["count"] = ds.df.count()
+    s["length"] = len(ds.df)
+    s["coverage"] = round((s["count"] / len(ds.df)), 2)
+    s["cardinality"] = ds.df.nunique()
+    s["nulled"] = nulled
+    s["mode coverage"] = ds.df.apply(
+        lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
+    s["mode"] = ds.df.mode().head(1).T
+    s["sample"] = ds.df.sample().T
+    s.index.name = "column"
+    s.reset_index(inplace=True)
+    s["reference"] = ds.name + "['" + s["column"] + "']"
+    s["file"] = ds.source
+    s.index += 1
+    s.index.name = "sequence"
+    return s
 
 def sources(path, recursive=False, **kwargs):
     fileset = glob(path, recursive=recursive)
