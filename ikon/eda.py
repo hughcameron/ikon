@@ -120,94 +120,74 @@ class DataSource:
             except FileNotFoundError:
                 self.delimiter = None
 
-    @classmethod
-    def to_df(cls):
-        """Generate a DataFrame from a Datasource"""
-        if cls.ext == "csv":
-            cls.df = pd.read_csv(
-                cls.source, sep=cls.delimiter, encoding=cls.encoding, **cls.kwargs)
-            return cls.df
-        else:
-            cls.df = pd.read_excel(cls.source)
-            return cls.df
+        @classmethod
+        def df(cls):
+            """Generate a DataFrame from a Datasource"""
+            if cls.ext == "csv":
+                cls.df = pd.read_csv(
+                    cls.source, sep=cls.delimiter, encoding=cls.encoding, **cls.kwargs)
+                return cls.df
+            else:
+                cls.df = pd.read_excel(cls.source)
+                return cls.df
 
-    @classmethod
-    def statement(cls):
-        """Return a string that can be run to generate DataFrames."""
-        define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
-            cls.name, cls.ext, cls.source, cls.encoding, cls.delimiter)
-        arguments = [
-            ", " + k + "=" + string_arg(v) for k, v in cls.kwargs.items()
-        ]
-        arguments = "".join(arguments)
-        statement = define + arguments + ")"
-        return statement
+        @classmethod
+        def statement(cls):
+            """Return a string that can be run to generate DataFrames."""
+            define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
+                cls.name, cls.ext, cls.source, cls.encoding, cls.delimiter)
+            arguments = [
+                ", " + k + "=" + string_arg(v) for k, v in cls.kwargs.items()
+            ]
+            arguments = "".join(arguments)
+            statement = define + arguments + ")"
+            return statement
 
-
-def frame_summary(data, **kwargs):
-    """Generate Series Summary from a DataSource or DataFrame"""
-    if type(data) == DataSource:
-        ds = data
-        ds.df = gen_dataframe(ds)
-    elif type(data) == pd.DataFrame:
-        ds = DataSource(*get_source_attr(data))
-        ds.df = data
-        # TODO provide warning if df.name and df.source are set to defaults across multiple frames
-    else:
-        raise ValueError(
-            "Expecting type DataSource or DataFrame, received {}.".format(
-                type(data)))
-    na_values = kwargs.get("na_values", [])
-    na_values = nullables + na_values
-    nulled = ds.df.apply(
-        lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
-    ds.df = ds.df.replace(na_values, nan)
-    s = pd.DataFrame()
-    s["type"] = ds.df.dtypes
-    s["count"] = ds.df.count()
-    s["length"] = len(ds.df)
-    s["coverage"] = round((s["count"] / len(ds.df)), 2)
-    s["cardinality"] = ds.df.nunique()
-    s["nulled"] = nulled
-    s["mode coverage"] = ds.df.apply(
-        lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
-    s["mode"] = ds.df.mode().head(1).T
-    s["sample"] = ds.df.sample().T
-    s.index.name = "column"
-    s.reset_index(inplace=True)
-    s["reference"] = ds.name + "['" + s["column"] + "']"
-    s["file"] = ds.source
-    s.index += 1
-    s.index.name = "sequence"
-    return s
-
-
-def summaries(group, recursive=False, **kwargs):
-    """Generate a Frame Summary for a group of files, DataSources or DataFrames."""
-    data_list = []
-    if type(group) == list:
-        for g in group:
-            if type(g) == str:
-                d = find_sources(g, recursive=recursive, **kwargs)
-                data_list.append(d)
-            elif type(g) == DataSource:
-                data_list.append(g)
-            elif type(g) == pd.DataFrame:
-                data_list.append(g)
+        @classmethod
+        def summary(data, **kwargs):
+            """Generate a summary from a DataSource or DataFrame"""
+            if type(data) == DataSource:
+                ds = data
+                ds.df = gen_dataframe(ds)
+            elif type(data) == pd.DataFrame:
+                ds = DataSource(*get_source_attr(data))
+                ds.df = data
+                # TODO provide warning if df.name and df.source are set to defaults across multiple frames
             else:
                 raise ValueError(
-                    "Expecting type list, path or DataSource, received {}.".
-                    format(type(g)))
-    elif type(group) == str:
-        d = find_sources(group, recursive=recursive, **kwargs)
-        data_list += d
-    elif type(group) == DataSource:
-        data_list.append(group)
-    else:
-        raise ValueError("Expecting type list, path or DataSource.")
-    summary_list = [frame_summary(d, **kwargs) for d in data_list]
-    return pd.concat(summary_list, axis=0)
+                    "Expecting type DataSource or DataFrame, received {}.".format(
+                        type(data)))
+            na_values = kwargs.get("na_values", [])
+            na_values = nullables + na_values
+            nulled = ds.df.apply(
+                lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
+            ds.df = ds.df.replace(na_values, nan)
+            s = pd.DataFrame()
+            s["type"] = ds.df.dtypes
+            s["count"] = ds.df.count()
+            s["length"] = len(ds.df)
+            s["coverage"] = round((s["count"] / len(ds.df)), 2)
+            s["cardinality"] = ds.df.nunique()
+            s["nulled"] = nulled
+            s["mode coverage"] = ds.df.apply(
+                lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
+            s["mode"] = ds.df.mode().head(1).T
+            s["sample"] = ds.df.sample().T
+            s.index.name = "column"
+            s.reset_index(inplace=True)
+            s["reference"] = ds.name + "['" + s["column"] + "']"
+            s["file"] = ds.source
+            s.index += 1
+            s.index.name = "sequence"
+            return s
 
+def sources(path, recursive=False, **kwargs):
+    fileset = glob(path, recursive=recursive)
+    sources = []
+    for f in fileset:
+        s = DataSource(f, **kwargs)
+        sources.append(s)
+    return sources
 
 def statements(path, recursive=False, source_attr=False, **kwargs):
     fileset = glob(path, recursive=recursive)
@@ -226,10 +206,28 @@ def statements(path, recursive=False, source_attr=False, **kwargs):
     statements += "\n\ndf_list = " + str(frame_list).replace("'", "")
     return statements
 
-def sources(path, recursive=False, **kwargs):
-    fileset = glob(path, recursive=recursive)
-    sources = []
-    for f in fileset:
-        s = DataSource(f, **kwargs)
-        sources.append(s)
-    return sources
+def summaries(group, recursive=False, **kwargs):
+    """Generate a Summary for a group of files, DataSources or DataFrames."""
+    data_list = []
+    if type(group) == list:
+        for g in group:
+            if type(g) == str:
+                d = sources(g, recursive=recursive, **kwargs)
+                data_list.append(d)
+            elif type(g) == DataSource:
+                data_list.append(g)
+            elif type(g) == pd.DataFrame:
+                data_list.append(g)
+            else:
+                raise ValueError(
+                    "Expecting type list, path or DataSource, received {}.".
+                    format(type(g)))
+    elif type(group) == str:
+        d = sources(group, recursive=recursive, **kwargs)
+        data_list += d
+    elif type(group) == DataSource:
+        data_list.append(group)
+    else:
+        raise ValueError("Expecting type list, path or DataSource.")
+    summary_list = [d.summary(**kwargs) for d in data_list]
+    return pd.concat(summary_list, axis=0)
