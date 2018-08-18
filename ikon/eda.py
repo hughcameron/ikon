@@ -144,20 +144,6 @@ class DataSource:
         return statement
 
 
-def read_source(path, recursive=False, **kwargs):
-    """Return one or many files as DataFrames"""
-    fetch = glob(path, recursive=recursive)
-    if len(fetch) == 1:
-        ds = DataSource(path, **kwargs)
-        return gen_dataframe(ds)
-    else:
-        dataframes = []
-        for f in fetch:
-            ds = DataSource(f, **kwargs)
-            dataframes.append(gen_dataframe(ds))
-        return dataframes
-
-
 def frame_summary(data, **kwargs):
     """Generate Series Summary from a DataSource or DataFrame"""
     if type(data) == DataSource:
