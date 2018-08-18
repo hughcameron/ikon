@@ -1,7 +1,7 @@
 import pandas as pd
 from numpy import nan, var
 from os.path import basename, splitext
-from chardet.universaldetector import UniversalDetector
+from icu import CharsetDetector
 from glob import glob
 import csv
 
@@ -30,36 +30,14 @@ ext_match = {
     ".xlsx": "excel",
 }
 
-preferred_encodings = ["utf-8", "ascii", "latin1"]
-
 
 def detect_encoding(file):
     """
-    The UniversalDetector is resource intensive. This is only called
-    when infer_encoding fails to resolve a preferred encoding.
+    Uses CharsetDetector from pyicu to determine encoding.
     """
     with open(file, mode="rb") as f:
-        detector = UniversalDetector()
-        for line in f.readlines():
-            detector.feed(line)
-            if detector.done:
-                break
-        detector.close()
-    return detector.result["encoding"]
-
-
-def infer_encoding(file):
-    """Test for encoding with preferred_encodings or UniversalDetector."""
-    i = 0
-    while i < len(preferred_encodings):
-        try:
-            pd.read_csv(file, encoding=preferred_encodings[i], nrows=50)
-        except UnicodeDecodeError:
-            i += 1
-        else:
-            return preferred_encodings[i]
-    else:
-        return detect_encoding(file)
+        data = f.read(1024)
+    return CharsetDetector(data).detect().getName()
 
 
 def non_zero_var(counts):
@@ -116,7 +94,7 @@ class DataSource:
             self.encoding = kwargs.pop("encoding")
         except KeyError:
             try:
-                self.encoding = infer_encoding(self.source)
+                self.encoding = detect_encoding(self.source)
             except FileNotFoundError:
                 self.encoding = None
 
@@ -142,12 +120,24 @@ class DataSource:
             except FileNotFoundError:
                 self.delimiter = None
 
-    def statement(self):
+    @classmethod
+    def to_df(cls):
+        """Generate a DataFrame from a Datasource"""
+        if cls.ext == "csv":
+            cls.df = pd.read_csv(
+                cls.source, sep=cls.delimiter, encoding=cls.encoding, **cls.kwargs)
+            return cls.df
+        else:
+            cls.df = pd.read_excel(cls.source)
+            return cls.df
+
+    @classmethod
+    def statement(cls):
         """Return a string that can be run to generate DataFrames."""
         define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
-            self.name, self.ext, self.source, self.encoding, self.delimiter)
+            cls.name, cls.ext, cls.source, cls.encoding, cls.delimiter)
         arguments = [
-            ", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()
+            ", " + k + "=" + string_arg(v) for k, v in cls.kwargs.items()
         ]
         arguments = "".join(arguments)
         statement = define + arguments + ")"
@@ -160,18 +150,6 @@ def find_sources(path, recursive=False, **kwargs):
     for g in group:
         source_list.append(DataSource(g, **kwargs))
     return source_list
-
-
-def gen_dataframe(DataSource):
-    """Generate a DataFrame from a Datasource"""
-    ds = DataSource
-    if ds.ext == "csv":
-        ds.df = pd.read_csv(
-            ds.source, sep=ds.delimiter, encoding=ds.encoding, **ds.kwargs)
-        return ds.df
-    else:
-        ds.df = pd.read_excel(ds.source)
-        return ds.df
 
 
 def read_source(path, recursive=False, **kwargs):
