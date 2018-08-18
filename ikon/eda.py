@@ -120,12 +120,24 @@ class DataSource:
             except FileNotFoundError:
                 self.delimiter = None
 
-    def statement(self):
+    @classmethod
+    def to_df(cls):
+        """Generate a DataFrame from a Datasource"""
+        if cls.ext == "csv":
+            cls.df = pd.read_csv(
+                cls.source, sep=cls.delimiter, encoding=cls.encoding, **cls.kwargs)
+            return cls.df
+        else:
+            cls.df = pd.read_excel(cls.source)
+            return cls.df
+
+    @classmethod
+    def statement(cls):
         """Return a string that can be run to generate DataFrames."""
         define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
-            self.name, self.ext, self.source, self.encoding, self.delimiter)
+            cls.name, cls.ext, cls.source, cls.encoding, cls.delimiter)
         arguments = [
-            ", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()
+            ", " + k + "=" + string_arg(v) for k, v in cls.kwargs.items()
         ]
         arguments = "".join(arguments)
         statement = define + arguments + ")"
@@ -138,18 +150,6 @@ def find_sources(path, recursive=False, **kwargs):
     for g in group:
         source_list.append(DataSource(g, **kwargs))
     return source_list
-
-
-def gen_dataframe(DataSource):
-    """Generate a DataFrame from a Datasource"""
-    ds = DataSource
-    if ds.ext == "csv":
-        ds.df = pd.read_csv(
-            ds.source, sep=ds.delimiter, encoding=ds.encoding, **ds.kwargs)
-        return ds.df
-    else:
-        ds.df = pd.read_excel(ds.source)
-        return ds.df
 
 
 def read_source(path, recursive=False, **kwargs):
