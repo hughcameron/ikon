@@ -146,9 +146,10 @@ def summary(data, **kwargs):
     """Generate a summary from a DataSource or DataFrame"""
     if type(data) == DataSource:
         ds = data
+        df = ds.df()
     elif type(data) == pd.DataFrame:
         ds = DataSource(*get_source_attr(data))
-        ds.df = data
+        df = data
         # TODO provide warning if df.name and df.source are set to defaults across multiple frames
     else:
         raise ValueError(
@@ -156,20 +157,20 @@ def summary(data, **kwargs):
                 type(data)))
     na_values = kwargs.get("na_values", [])
     na_values = nullables + na_values
-    nulled = ds.df.apply(
-        lambda x: round(sum(x.isin(na_values)) / len(ds.df), 2), axis=0)
-    ds.df = ds.df.replace(na_values, nan)
+    nulled = df.apply(
+        lambda x: round(sum(x.isin(na_values)) / len(df), 2), axis=0)
+    df = df.replace(na_values, nan)
     s = pd.DataFrame()
-    s["type"] = ds.df.dtypes
-    s["count"] = ds.df.count()
-    s["length"] = len(ds.df)
-    s["coverage"] = round((s["count"] / len(ds.df)), 2)
-    s["cardinality"] = ds.df.nunique()
+    s["type"] = df.dtypes
+    s["count"] = df.count()
+    s["length"] = len(df)
+    s["coverage"] = round((s["count"] / len(df)), 2)
+    s["cardinality"] = df.nunique()
     s["nulled"] = nulled
-    s["mode coverage"] = ds.df.apply(
+    s["mode coverage"] = df.apply(
         lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
-    s["mode"] = ds.df.mode().head(1).T
-    s["sample"] = ds.df.sample().T
+    s["mode"] = df.mode().head(1).T
+    s["sample"] = df.sample().T
     s.index.name = "column"
     s.reset_index(inplace=True)
     s["reference"] = ds.name + "['" + s["column"] + "']"
@@ -226,5 +227,5 @@ def summaries(group, recursive=False, **kwargs):
         data_list.append(group)
     else:
         raise ValueError("Expecting type list, path or DataSource.")
-    summary_list = [d.summary(**kwargs) for d in data_list]
+    summary_list = [summary(d, **kwargs) for d in data_list]
     return pd.concat(summary_list, axis=0)
