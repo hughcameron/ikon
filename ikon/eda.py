@@ -14,10 +14,8 @@ nullables = [
     "01/01/1900 00:00:00",
     "30/12/1899 00:00:00",
     "00:00:00",
-    "??:??:??",
+    "??:??:??"
 ]
-
-delimiters = [",", ";", "|", "\t"]
 
 ext_match = {
     ".csv": "csv",
@@ -27,7 +25,7 @@ ext_match = {
     ".txt": "csv",
     ".lst": "csv",
     ".xls": "excel",
-    ".xlsx": "excel",
+    ".xlsx": "excel"
 }
 
 
@@ -38,6 +36,17 @@ def detect_encoding(file):
     with open(file, mode="rb") as f:
         data = f.read(1024)
     return CharsetDetector(data).detect().getName()
+
+
+def detect_delimeter(file, encoding):
+    """
+    Uses Sniffer from csv to determine delimiter.
+    """
+    sniffer = csv.Sniffer()
+    with open(file, mode="rb", encoding=encoding) as f:
+        data = f.read(1024)
+        dialect = sniffer.sniff(data)
+    return dialect.delimiter
 
 
 def non_zero_var(counts):
@@ -98,25 +107,12 @@ class DataSource:
             except FileNotFoundError:
                 self.encoding = None
 
-        # Infer delimiteter by using csv Sniffer or by evaluating
-        # minumum varience of delimiter occurence in first 10 lines
+        # Infer delimiteter
         try:
             self.delimiter = kwargs.pop("sep")
         except KeyError:
             try:
-                with open(self.source, "r", encoding=self.encoding) as f:
-                    try:
-                        lines = f.readline() + "\n" + f.readline()
-                        dialect = csv.Sniffer().sniff(
-                            lines, delimiters=",;|\t")
-                        self.delimiter = dialect.delimiter
-                    except:
-                        lines = [f.readline() for i in range(10)]
-                        counts = [[l.count(d) for l in lines]
-                                  for d in delimiters]
-                        varience = [non_zero_var(c) for c in counts]
-                        self.delimiter = delimiters[varience.index(
-                            min(varience))]
+                self.delimiter = detect_delimeter(self.source, self.encoding)
             except FileNotFoundError:
                 self.delimiter = None
 
