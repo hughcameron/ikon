@@ -43,6 +43,7 @@ def detect_delimeter(file, encoding):
     Uses Sniffer from csv to determine delimiter.
     """
     sniffer = csv.Sniffer()
+    sniffer.preferred = ['|',';',',','\t',' ']
     with open(file, mode="rb", encoding=encoding) as f:
         data = f.read(1024)
         dialect = sniffer.sniff(data)
