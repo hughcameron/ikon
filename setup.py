@@ -1,17 +1,17 @@
 from setuptools import setup
 
 setup(
-    name="ikon",
+    name="summer",
     version="0.0.1",
     description="A Python package for the People",
     author="Hugh Cameron",
     author_email="hescameron@gmail.com",
-    url="https://github.com/hughcameron/ikon",
+    url="https://github.com/hughcameron/summer",
     packages=[
-        "ikon"
+        "summer"
     ],
     package_data={
-        "ikon": [
+        "summer": [
             "config.ini"
         ]
     },
