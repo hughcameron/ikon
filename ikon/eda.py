@@ -59,11 +59,11 @@ def get_source_attr(DataFrame):
     try:
         name = DataFrame.name
     except AttributeError:
-        name = 'df'
+        name = "df"
     try:
         source = DataFrame.source
     except AttributeError:
-        source = 'source'
+        source = "source"
     return source, name
 
 
@@ -100,8 +100,8 @@ class DataSource:
 
         # Infer delimiteter by using csv Sniffer or by evaluating
         # minumum varience of delimiter occurence in first 10 lines
-        if self.ext == 'excel':
-            self.delimiter = '\t'
+        if self.ext == "excel":
+            self.delimiter = "\t"
         else:
             try:
                 self.delimiter = kwargs.pop("sep")
@@ -111,41 +111,61 @@ class DataSource:
                         try:
                             lines = f.readline() + "\n" + f.readline()
                             dialect = csv.Sniffer().sniff(
-                                lines, delimiters="".join(DELIMITERS))
+                                lines, delimiters="".join(DELIMITERS)
+                            )
                             self.delimiter = dialect.delimiter
                         except:
                             lines = [f.readline() for i in range(10)]
-                            counts = [[l.count(d) for l in lines]
-                                    for d in DELIMITERS]
+                            counts = [
+                                [l.count(d) for l in lines] for d in DELIMITERS
+                            ]
                             varience = [non_zero_var(c) for c in counts]
-                            self.delimiter = DELIMITERS[varience.index(
-                                min(varience))]
+                            self.delimiter = DELIMITERS[
+                                varience.index(min(varience))
+                            ]
                 except FileNotFoundError:
                     self.delimiter = None
 
-    def df(self):
+        # Detect gap above header row
+        self.header = 0
+        head = self.df(nrows=10)
+        columns = head.columns.tolist()
+        if (
+            sum([column.startswith("Unnamed: ") for column in columns])
+            / len(columns)
+            >= 0.5
+        ):
+            for i, row in head.iterrows():
+                self.header = i + 1
+                if sum([len(str(cell)) for cell in row]) > 0:
+                    break
+
+    def df(self, **kwargs):
         """Generate a DataFrame from a Datasource"""
+        self.kwargs.update(kwargs)
+        kwargs = self.kwargs
         if self.ext == "csv":
             df = pd.read_csv(
-                self.source, sep=self.delimiter, encoding=self.encoding, **self.kwargs)
-            return df
-        else:
-            # TODO provide multi tab method for dataframes
-            xl = pd.ExcelFile(self.source)
-            xl.sheet_names
-            df = xl.parse(xl.sheet_names[0])
+                self.source,
+                header=self.header,
+                sep=self.delimiter,
+                encoding=self.encoding,
+                **self.kwargs
+            )
             return df
 
     def statement(self):
         """Return a string that can be run to generate DataFrames."""
         define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
-            self.name, self.ext, self.source, self.encoding, self.delimiter)
+            self.name, self.ext, self.source, self.encoding, self.delimiter
+        )
         arguments = [
             ", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()
         ]
         arguments = "".join(arguments)
         statement = define + arguments + ")"
         return statement
+
 
 def summary(data, **kwargs):
     """Generate a summary from a DataSource or DataFrame"""
@@ -159,11 +179,14 @@ def summary(data, **kwargs):
     else:
         raise ValueError(
             "Expecting type DataSource or DataFrame, received {}.".format(
-                type(data)))
+                type(data)
+            )
+        )
     na_values = kwargs.get("na_values", [])
-    na_values = nullables + na_values
+    na_values = NULLABLES + na_values
     nulled = df.apply(
-        lambda x: round(sum(x.isin(na_values)) / len(df), 2), axis=0)
+        lambda x: round(sum(x.isin(na_values)) / len(df), 2), axis=0
+    )
     df = df.replace(na_values, nan)
     s = pd.DataFrame()
     s["type"] = df.dtypes
@@ -173,7 +196,8 @@ def summary(data, **kwargs):
     s["cardinality"] = df.nunique()
     s["nulled"] = nulled
     s["mode coverage"] = df.apply(
-        lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
+        lambda x: round(x.value_counts().max() / len(x), 2), axis=0
+    )
     s["mode"] = df.mode().head(1).T
     s["sample"] = df.sample().T
     s.index.name = "column"
@@ -184,6 +208,7 @@ def summary(data, **kwargs):
     s.index.name = "sequence"
     return s
 
+
 def sources(path, recursive=False, **kwargs):
     fileset = glob(path, recursive=recursive)
     sources = []
@@ -191,6 +216,7 @@ def sources(path, recursive=False, **kwargs):
         s = DataSource(f, **kwargs)
         sources.append(s)
     return sources
+
 
 def statements(path, recursive=False, source_attr=False, **kwargs):
     fileset = glob(path, recursive=recursive)
@@ -209,6 +235,7 @@ def statements(path, recursive=False, source_attr=False, **kwargs):
     statements += "\n\ndf_list = " + str(frame_list).replace("'", "")
     return statements
 
+
 def summaries(group, recursive=False, **kwargs):
     """Generate a Summary for a group of files, DataSources or DataFrames."""
     data_list = []
@@ -223,8 +250,10 @@ def summaries(group, recursive=False, **kwargs):
                 data_list.append(g)
             else:
                 raise ValueError(
-                    "Expecting type list, path or DataSource, received {}.".
-                    format(type(g)))
+                    "Expecting type list, path or DataSource, received {}.".format(
+                        type(g)
+                    )
+                )
     elif type(group) == str:
         d = sources(group, recursive=recursive, **kwargs)
         data_list += d
