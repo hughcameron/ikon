@@ -100,25 +100,28 @@ class DataSource:
 
         # Infer delimiteter by using csv Sniffer or by evaluating
         # minumum varience of delimiter occurence in first 10 lines
-        try:
-            self.delimiter = kwargs.pop("sep")
-        except KeyError:
+        if self.ext == 'excel':
+            self.delimiter = '\t'
+        else:
             try:
-                with open(self.source, "r", encoding=self.encoding) as f:
-                    try:
-                        lines = f.readline() + "\n" + f.readline()
-                        dialect = csv.Sniffer().sniff(
-                            lines, delimiters=",;|\t")
-                        self.delimiter = dialect.delimiter
-                    except:
-                        lines = [f.readline() for i in range(10)]
-                        counts = [[l.count(d) for l in lines]
-                                  for d in delimiters]
-                        varience = [non_zero_var(c) for c in counts]
-                        self.delimiter = delimiters[varience.index(
-                            min(varience))]
-            except FileNotFoundError:
-                self.delimiter = None
+                self.delimiter = kwargs.pop("sep")
+            except KeyError:
+                try:
+                    with open(self.source, "r", encoding=self.encoding) as f:
+                        try:
+                            lines = f.readline() + "\n" + f.readline()
+                            dialect = csv.Sniffer().sniff(
+                                lines, delimiters=",;|\t")
+                            self.delimiter = dialect.delimiter
+                        except:
+                            lines = [f.readline() for i in range(10)]
+                            counts = [[l.count(d) for l in lines]
+                                    for d in delimiters]
+                            varience = [non_zero_var(c) for c in counts]
+                            self.delimiter = delimiters[varience.index(
+                                min(varience))]
+                except FileNotFoundError:
+                    self.delimiter = None
 
     def df(self):
         """Generate a DataFrame from a Datasource"""
@@ -128,7 +131,9 @@ class DataSource:
             return df
         else:
             # TODO provide multi tab method for dataframes
-            df = pd.read_excel(self.source)
+            xl = pd.ExcelFile(self.source)
+            xl.sheet_names
+            df = xl.parse(xl.sheet_names[0])
             return df
 
     def statement(self):
