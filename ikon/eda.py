@@ -5,7 +5,7 @@ from icu import CharsetDetector
 from glob import glob
 import csv
 
-nullables = [
+NULLABLES = [
     0,
     "0",
     " ",
@@ -17,9 +17,9 @@ nullables = [
     "??:??:??",
 ]
 
-delimiters = [",", ";", "|", "\t"]
+DELIMITERS = [",", ";", "|", "\t"]
 
-ext_match = {
+EXT_MATCH = {
     ".csv": "csv",
     ".tsv": "csv",
     ".tab": "csv",
@@ -85,7 +85,7 @@ class DataSource:
 
         # Derive file extension from filename if available
         try:
-            self.ext = ext_match[splitext(basename(self.source))[1]]
+            self.ext = EXT_MATCH[splitext(basename(self.source))[1]]
         except KeyError:
             self.ext = None
 
@@ -111,14 +111,14 @@ class DataSource:
                         try:
                             lines = f.readline() + "\n" + f.readline()
                             dialect = csv.Sniffer().sniff(
-                                lines, delimiters=",;|\t")
+                                lines, delimiters="".join(DELIMITERS))
                             self.delimiter = dialect.delimiter
                         except:
                             lines = [f.readline() for i in range(10)]
                             counts = [[l.count(d) for l in lines]
-                                    for d in delimiters]
+                                    for d in DELIMITERS]
                             varience = [non_zero_var(c) for c in counts]
-                            self.delimiter = delimiters[varience.index(
+                            self.delimiter = DELIMITERS[varience.index(
                                 min(varience))]
                 except FileNotFoundError:
                     self.delimiter = None
