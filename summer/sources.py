@@ -153,6 +153,12 @@ class DataSource:
                 **self.kwargs
             )
             return df
+        else:
+            # TODO provide multi tab method for dataframes
+            xl = pd.ExcelFile(self.source)
+            xl.sheet_names
+            df = xl.parse(xl.sheet_names[0], header=self.header)
+            return df
 
     def statement(self):
         """Return a string that can be run to generate DataFrames."""
