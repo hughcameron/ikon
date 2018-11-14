@@ -142,8 +142,6 @@ class DataSource:
 
     def df(self, **kwargs):
         """Generate a DataFrame from a Datasource"""
-        self.kwargs.update(kwargs)
-        kwargs = self.kwargs
         if self.ext == "csv":
             df = pd.read_csv(
                 self.source,
