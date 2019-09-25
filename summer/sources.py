@@ -6,15 +6,7 @@ from glob import glob
 import csv
 
 NULLABLES = [
-    0,
-    "0",
-    " ",
-    "-",
-    ".",
-    "01/01/1900 00:00:00",
-    "30/12/1899 00:00:00",
-    "00:00:00",
-    "??:??:??",
+    0, "0", " ", "-", ".", "01/01/1900 00:00:00", "30/12/1899 00:00:00", "00:00:00", "??:??:??"
 ]
 
 DELIMITERS = [",", ";", "|", "\t"]
@@ -110,19 +102,13 @@ class DataSource:
                     with open(self.source, "r", encoding=self.encoding) as f:
                         try:
                             lines = f.readline() + "\n" + f.readline()
-                            dialect = csv.Sniffer().sniff(
-                                lines, delimiters="".join(DELIMITERS)
-                            )
+                            dialect = csv.Sniffer().sniff(lines, delimiters="".join(DELIMITERS))
                             self.delimiter = dialect.delimiter
                         except:
                             lines = [f.readline() for i in range(10)]
-                            counts = [
-                                [l.count(d) for l in lines] for d in DELIMITERS
-                            ]
+                            counts = [[l.count(d) for l in lines] for d in DELIMITERS]
                             varience = [non_zero_var(c) for c in counts]
-                            self.delimiter = DELIMITERS[
-                                varience.index(min(varience))
-                            ]
+                            self.delimiter = DELIMITERS[varience.index(min(varience))]
                 except FileNotFoundError:
                     self.delimiter = None
 
@@ -130,11 +116,7 @@ class DataSource:
         self.header = 0
         head = self.df(nrows=10)
         columns = head.columns.tolist()
-        if (
-            sum([column.startswith("Unnamed: ") for column in columns])
-            / len(columns)
-            >= 0.5
-        ):
+        if (sum([column.startswith("Unnamed: ") for column in columns]) / len(columns) >= 0.5):
             for i, row in head.iterrows():
                 self.header = i + 1
                 if sum([len(str(cell)) for cell in row]) > 0:
@@ -163,9 +145,7 @@ class DataSource:
         define = "{0} = pd.read_{1}('{2}', encoding='{3}', sep='{4}'".format(
             self.name, self.ext, self.source, self.encoding, self.delimiter
         )
-        arguments = [
-            ", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()
-        ]
+        arguments = [", " + k + "=" + string_arg(v) for k, v in self.kwargs.items()]
         arguments = "".join(arguments)
         statement = define + arguments + ")"
         return statement
@@ -181,16 +161,10 @@ def summary(data, **kwargs):
         df = data
         # TODO provide warning if df.name and df.source are set to defaults across multiple frames
     else:
-        raise ValueError(
-            "Expecting type DataSource or DataFrame, received {}.".format(
-                type(data)
-            )
-        )
+        raise ValueError("Expecting type DataSource or DataFrame, received {}.".format(type(data)))
     na_values = kwargs.get("na_values", [])
     na_values = NULLABLES + na_values
-    nulled = df.apply(
-        lambda x: round(sum(x.isin(na_values)) / len(df), 2), axis=0
-    )
+    nulled = df.apply(lambda x: round(sum(x.isin(na_values)) / len(df), 2), axis=0)
     df = df.replace(na_values, nan)
     s = pd.DataFrame()
     s["type"] = df.dtypes
@@ -199,9 +173,7 @@ def summary(data, **kwargs):
     s["coverage"] = round((s["count"] / len(df)), 2)
     s["cardinality"] = df.nunique()
     s["nulled"] = nulled
-    s["mode coverage"] = df.apply(
-        lambda x: round(x.value_counts().max() / len(x), 2), axis=0
-    )
+    s["mode coverage"] = df.apply(lambda x: round(x.value_counts().max() / len(x), 2), axis=0)
     s["mode"] = df.mode().head(1).T
     s["sample"] = df.sample().T
     s.index.name = "column"
@@ -254,9 +226,7 @@ def summaries(group, recursive=False, **kwargs):
                 data_list.append(g)
             else:
                 raise ValueError(
-                    "Expecting type list, path or DataSource, received {}.".format(
-                        type(g)
-                    )
+                    "Expecting type list, path or DataSource, received {}.".format(type(g))
                 )
     elif type(group) == str:
         d = sources(group, recursive=recursive, **kwargs)
